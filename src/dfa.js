@@ -6,9 +6,10 @@ class DFA{
     }
     doesAccept(string) {
         let sampleArr = string.split('');
-        return this.finalState.includes(sampleArr.reduce((currentState,char)=>{
+        return this.finalState.includes(sampleArr.reduce(this.changeCurrentState.bind(this),this.startState))
+    }
+    changeCurrentState(currentState,char){
             return this.delta[currentState][char]
-        },this.startState))
     }
 }
 module.exports = DFA
