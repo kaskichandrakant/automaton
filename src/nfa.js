@@ -1,49 +1,50 @@
 class NFA {
     constructor(tuple) {
-        this.tuple = tuple;
         this.startState = tuple['start-state']
-        this.currentStates = [this.startState]
         this.finalStates = tuple['final-states']
         this.delta = tuple.delta
     }
     hasEpsilon(state) {
-        return this.delta[state].hasOwnProperty('e')
+        let deltaElement = this.delta[state];
+        return deltaElement ? deltaElement.hasOwnProperty('e') : false;
     }
     hasTransition(state, char) {
-        return this.delta[state].hasOwnProperty(char)
+        let deltaElement = this.delta[state];
+        return deltaElement ? deltaElement.hasOwnProperty(char) : false;
     }
     applyEpsilon(state) {
         this.currentStates = this.currentStates.concat(this.delta[state]['e'])
     }
-    getNextStates(state, char) {
-        return this.delta[state][char]
+    getNewStates(currentStates){
+        return this.currentStates.filter((state)=>{
+            return !currentStates.includes(state)
+        })
+    }
+    applyEpsilons(){
+        let currentStates = this.currentStates
+        let epsilonedStates = this.currentStates.filter(this.hasEpsilon.bind(this))
+        epsilonedStates.forEach(this.applyEpsilon.bind(this))
+        let newStates = this.getNewStates(currentStates)
+        if(newStates.length){
+            this.applyEpsilons()
+        }
     }
     applyTransitions(char) {
-        let liveStates = this.currentStates.filter((state) => {
-            return this.hasTransition(state, char)
-        })
-        // console.log("live", liveStates);
-        this.currentStates = liveStates.reduce((currentStates, liveState) => {
-            return currentStates.concat(this.getNextStates(liveState, char))
-        }, [])
-        this.currentStates.forEach((state)=>{
-            if(this.hasEpsilon(state)){
-                this.applyEpsilon(state)
+        this.currentStates = this.currentStates.reduce((currentStates, state) => {
+            if(this.hasTransition(state,char)){
+                return currentStates.concat(this.delta[state][char])
             }
-        })
+            return currentStates
+        }, [])
+        this.applyEpsilons()
     }
     doesAccept(string) {
-        this.currentStates = [this.tuple['start-state']]
+        this.currentStates = [this.startState]
         let chars = string.split('')
-
         this.currentStates.forEach(state => {
-            if (this.hasEpsilon(state)) {
-                this.applyEpsilon(state)
-            }
+            this.applyEpsilons()
             chars.forEach(this.applyTransitions.bind(this))
         });
-
-        // console.log(this.currentStates);
         return this.currentStates.some((state) => {
             return this.finalStates.includes(state)
         })
